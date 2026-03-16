@@ -1,0 +1,33 @@
+(ns todo-app.core
+  (:gen-class)
+  (:require
+    [clojure.string :as str]
+    [todo-app.cui :as cui]
+    [todo-app.gui :as gui]
+    [todo-app.server :as server]
+    [todo-app.store :as store]
+    [todo-app.util :as util]))
+
+
+(defn help
+  []
+  (println
+    (str/join "\n"
+              [""
+               "TODO Mode - 使い方:"
+               "  0:Simple CUI / 1:Repl CUI / 2:GUI / 3:REST"
+               ""])))
+
+
+(defn -main
+  [& mode]
+  ;; ファイルの存在チェック（なければ生成する）
+  (store/initialize-store!)
+  ;; 起動時に初期化・1回だけ読み込む
+  (let [data-atom (atom (store/load-todos))
+        mode-num (some-> mode first util/parse-num)]
+    (case mode-num
+      (0 1) (cui/cui-repl! data-atom mode-num)
+      2     (gui/run data-atom)
+      3     (server/run data-atom)
+      (help))))
