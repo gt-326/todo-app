@@ -2,8 +2,8 @@
 FROM clojure:lein AS builder
 WORKDIR /app
 COPY . .
-RUN lein cljsbuild once vanilla-release
-RUN lein cljsbuild once reagent-release
+# RUN lein cljsbuild once vanilla-release
+# RUN lein cljsbuild once reagent-release
 RUN lein uberjar
 
 # ─── 実行ステージ ──────────────────────────────────
