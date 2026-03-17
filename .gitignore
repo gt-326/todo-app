@@ -1,0 +1,6 @@
+log/
+target/
+test/
+resources/emacs.png
+resources/index.html
+resources/style.css
