@@ -150,6 +150,63 @@ lein cljsbuild once reagent-release
 
 ---
 
+## Railway へのデプロイ
+
+### 構成ファイル
+
+**`Dockerfile`**（マルチステージビルド）
+
+```dockerfile
+# ビルドステージ（JS はリポジトリに含まれる前提）
+FROM clojure:lein AS builder
+WORKDIR /app
+COPY . .
+RUN lein uberjar
+
+# 実行ステージ
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=builder /app/target/uberjar/todo-app-1.0.0-standalone.jar app.jar
+CMD ["java", "-jar", "app.jar", "3"]
+```
+
+- JS（`resources/public/js/`）はローカルで `lein cljsbuild once vanilla-release` / `reagent-release` を実行してからリポジトリに含める
+- ランタイムは Java 21（`instaparse` が `java.util.SequencedCollection` を参照するため Java 17 では動作しない）
+
+### ポートの設定
+
+Railway は `PORT` 環境変数でポートを指定する。`server.clj` で以下のように対応済み：
+
+```clojure
+(let [port (Integer/parseInt (or (System/getenv "PORT") "3000"))]
+  (jetty/run-jetty (make-handler data-atom) {:port port :join? true}))
+```
+
+ローカル実行時は `PORT` が未設定のため `3000` がデフォルト値として使われる。
+
+### データ永続化
+
+Railway のファイルシステムは再デプロイのたびにリセットされる。Volume を使って永続化する。
+
+| 設定項目 | 値 |
+|---|---|
+| Volume 名 | `todo-app-volume` |
+| Mount Path | `/app/log` |
+| 対象ファイル | `/app/log/todo.edn` |
+
+### 動作モードの制限
+
+Railway 上では REST モード（`3`）のみ動作する。
+
+| モード | ローカル | Railway |
+|---|---|---|
+| 0: Simple CUI | 可 | 不可（対話的入出力が必要） |
+| 1: Repl CUI | 可 | 不可（対話的入出力が必要） |
+| 2: GUI | 可 | 不可（ディスプレイが必要） |
+| 3: REST | 可 | 可（これのみ） |
+
+---
+
 ## `-main` の動作モード
 
 ```
